@@ -5,7 +5,7 @@ provider "google" {
 }
 
 resource "google_storage_bucket" "terraform-state" {
-  name          = "tf-state-demospace-terraform"
+  name          = "tf-state-demospace"
   location      = "asia"
   force_destroy = true
 
