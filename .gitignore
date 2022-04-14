@@ -54,6 +54,9 @@ Temporary Items
 *.tfstate
 *.tfstate.*
 
+# other terraform working files
+**/.terraform.*
+
 # Crash log files
 crash.log
 crash.*.log
