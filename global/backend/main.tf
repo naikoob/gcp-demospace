@@ -1,5 +1,5 @@
 provider "google" {
-  project = "demospace-terraform"
+  poject = "terraform-backend"
   region  = "asia-southeast1"
   zone    = "asia-southeast1-c"
 }
@@ -14,4 +14,3 @@ resource "google_storage_bucket" "terraform-state" {
     enabled = true
   }
 }
-
