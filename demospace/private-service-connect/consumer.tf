@@ -2,7 +2,7 @@ module "consumer-vpc" {
   source = "../modules/demo-vpc"
 
   network_name = "consumer-vpc"
-  project_id   = "private-service-connect-347700"
+  project_id   = var.project
 
   subnets = [
     {
@@ -42,7 +42,7 @@ resource "google_compute_forwarding_rule" "psc_consumer" {
 }
 
 
-# firewall rule to deny access to service connect by default
+# firewall rule to deny access to private service connect by default
 resource "google_compute_firewall" "deny_psc_access" {
   name        = "deny-psc-access"
   network     = module.consumer-vpc.network_id

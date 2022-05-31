@@ -2,7 +2,7 @@ module "producer-vpc" {
   source = "../modules/demo-vpc"
 
   network_name = "producer-vpc"
-  project_id   = "private-service-connect-347700"
+  project_id   = var.project
 
   subnets = [
     {
