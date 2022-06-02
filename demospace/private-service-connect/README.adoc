@@ -1,0 +1,41 @@
+= GCP Private Service Connect Demo
+
+This folder contains terraform config to provision a demonstration environment for Google Cloud Platform Private Service Connect with the following architecture:
+
+image::private-service-connect.png[]
+
+Egress firewall rules are used to allow only selected resources to access the private service connect.
+
+== Prerequisites
+. A GCP project
+. Terraform
+
+== Steps
+. Clone the top level project and change to this directory
++
+[source,base]
+----
+git clone https://github.com/naikoob/gcp-demospace.git
+cd gcp-demospace/demospace/private-service-connect
+----
+. Initialize terraform providers and plugins
++
+[source,base]
+----
+terraform init
+----
+. Provide your GCP project id to provision via terraform like so: 
++ 
+[source, bash]
+----
+terraform apply -var project=<your-gcp-project-id>
+----
+. An IP address `10.1.20.100` will be assigned in the consumer VPC to connect to the service attachment published on the producer VPC
+. 2 compute instances will be created in the consumer VPC network - `psc-access-vm` and `test-vm`
+. `psc-access-vm` is using the `psc-access-sa@` service account, and will be able to access the connected service. Demonstrate by using curl in a SSH session:
++
+[source, bash]
+----
+curl -v 10.1.20.100
+----
+. `test-vm` on the other hand is using the default compute engine service account, and will not be able to access the connected service.

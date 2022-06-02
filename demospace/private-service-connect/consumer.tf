@@ -6,15 +6,15 @@ module "consumer-vpc" {
 
   subnets = [
     {
-      subnet_name           = "consumer-subnet-01"
-      subnet_ip             = "10.1.18.0/24"
+      subnet_name           = "consumer-subnet"
+      subnet_ip             = var.consumer_subnet_cidr
       subnet_region         = var.region
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "consumer-subnet-psc"
-      subnet_ip             = "10.1.20.0/24"
+      subnet_name           = "privileged-services-subnet"
+      subnet_ip             = var.consumer_psc_subnet_cidr
       subnet_region         = var.region
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
@@ -26,7 +26,7 @@ resource "google_compute_address" "psc_service_address" {
   name   = "psc-service-address"
   region = var.region
 
-  subnetwork   = module.consumer-vpc.subnets["${var.region}/consumer-subnet-psc"].id
+  subnetwork   = module.consumer-vpc.subnets["${var.region}/privileged-services-subnet"].id
   address_type = "INTERNAL"
   address      = var.consumer_psc_address
 }
@@ -35,12 +35,17 @@ resource "google_compute_forwarding_rule" "psc_consumer" {
   name   = "psc-consumer-forwarding-rule"
   region = var.region
 
-  target                = google_compute_service_attachment.psc_ilb_service_attachment.id
+  target                = google_compute_service_attachment.nginx_service_attachment.id
   load_balancing_scheme = "" # need to override EXTERNAL default when target is a service attachment
   network               = module.consumer-vpc.network_id
   ip_address            = google_compute_address.psc_service_address.id
 }
 
+# service account to be granted access to private service
+resource "google_service_account" "psc_access_service_account" {
+  account_id   = "psc-access-sa"
+  display_name = "Private Service Connect Access"
+}
 
 # firewall rule to deny access to private service connect by default
 resource "google_compute_firewall" "deny_psc_access" {
@@ -52,16 +57,9 @@ resource "google_compute_firewall" "deny_psc_access" {
   deny {
     protocol = "tcp"
   }
-  destination_ranges = [module.consumer-vpc.subnets["${var.region}/consumer-subnet-psc"].ip_cidr_range]
+  destination_ranges = [module.consumer-vpc.subnets["${var.region}/privileged-services-subnet"].ip_cidr_range]
   priority           = 3000
 }
-
-# service account to be granted access to private service
-resource "google_service_account" "psc_access_service_account" {
-  account_id   = "psc-access-sa"
-  display_name = "Private Service Connect Access"
-}
-
 
 # firewall rule to allow access to service connect for service account
 resource "google_compute_firewall" "allow_psc_access" {
@@ -76,7 +74,7 @@ resource "google_compute_firewall" "allow_psc_access" {
   }
 
   target_service_accounts = [google_service_account.psc_access_service_account.email]
-  destination_ranges      = [module.consumer-vpc.subnets["${var.region}/consumer-subnet-psc"].ip_cidr_range]
+  destination_ranges      = [var.consumer_psc_address]
   priority                = 1000
 }
 
@@ -104,7 +102,7 @@ resource "google_compute_instance" "instance-1" {
   }
   network_interface {
     network    = module.consumer-vpc.network_id
-    subnetwork = module.consumer-vpc.subnets["${var.region}/consumer-subnet-01"].id
+    subnetwork = module.consumer-vpc.subnets["${var.region}/consumer-subnet"].id
   }
   # target service account with access to PSC resources
   service_account {
@@ -137,6 +135,6 @@ resource "google_compute_instance" "instance-2" {
   }
   network_interface {
     network    = module.consumer-vpc.network_id
-    subnetwork = module.consumer-vpc.subnets["${var.region}/consumer-subnet-01"].id
+    subnetwork = module.consumer-vpc.subnets["${var.region}/consumer-subnet"].id
   }
 }

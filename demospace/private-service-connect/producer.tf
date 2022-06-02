@@ -6,15 +6,15 @@ module "producer-vpc" {
 
   subnets = [
     {
-      subnet_name           = "producer-subnet-01"
+      subnet_name           = "producer-subnet"
       subnet_ip             = var.producer_subnet_cidr
       subnet_region         = var.region
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "producer-subnet-psc"
-      subnet_ip             = var.producer_psc_subnet_cidr
+      subnet_name           = "private-service-connect-subnet"
+      subnet_ip             = var.private_service_connect_subnet_cidr
       subnet_region         = var.region
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
@@ -23,8 +23,9 @@ module "producer-vpc" {
   ]
 }
 
+# allow http from private-service-connect subnet
 resource "google_compute_firewall" "producer_allow_http" {
-  name    = "producer-allow-http-ingress-from-iap"
+  name    = "producer-allow-http-ingress-from-psc-subnet"
   network = module.producer-vpc.network_name
 
   allow {
@@ -32,18 +33,17 @@ resource "google_compute_firewall" "producer_allow_http" {
     ports    = ["80", "443"]
   }
 
-  source_ranges = [var.producer_psc_subnet_cidr, "130.211.0.0/22", "35.191.0.0/16"]
+  source_ranges = [var.private_service_connect_subnet_cidr]
   target_tags   = ["http-server", "load-balanced-backend"]
 }
 
-resource "google_compute_service_attachment" "psc_ilb_service_attachment" {
-  name   = "my-psc-ilb"
+resource "google_compute_service_attachment" "nginx_service_attachment" {
+  name   = "private-service"
   region = var.region
 
-  //  domain_names          = ["psc-demo.private."]
   enable_proxy_protocol = false
   connection_preference = "ACCEPT_AUTOMATIC"
-  nat_subnets           = [module.producer-vpc.subnets["${var.region}/producer-subnet-psc"].id]
+  nat_subnets           = [module.producer-vpc.subnets["${var.region}/private-service-connect-subnet"].id]
   target_service        = google_compute_forwarding_rule.nginx_target_service.id
 }
 
@@ -56,7 +56,7 @@ resource "google_compute_forwarding_rule" "nginx_target_service" {
   backend_service       = google_compute_region_backend_service.nginx_backend.id
   ports                 = ["80"]
   network               = module.producer-vpc.network_id
-  subnetwork            = module.producer-vpc.subnets["${var.region}/producer-subnet-01"].id
+  subnetwork            = module.producer-vpc.subnets["${var.region}/producer-subnet"].id
 }
 
 # backend service
@@ -74,6 +74,29 @@ resource "google_compute_region_backend_service" "nginx_backend" {
   }
 }
 
+# create a health check
+resource "google_compute_region_health_check" "nginx_healthcheck" {
+  name   = "nginx-hc"
+  region = var.region
+  http_health_check {
+    port_specification = "USE_SERVING_PORT"
+  }
+}
+
+# allow http for healthchecks
+resource "google_compute_firewall" "producer_allow_healthcheck" {
+  name    = "producer-allow-healthcheck"
+  network = module.producer-vpc.network_name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+
+  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+  target_tags   = ["http-server", "load-balanced-backend"]
+}
+
 # instance template
 resource "google_compute_instance_template" "nginx_instance_template" {
   name         = "nginx-instance-template"
@@ -82,7 +105,7 @@ resource "google_compute_instance_template" "nginx_instance_template" {
 
   network_interface {
     network    = module.producer-vpc.network_id
-    subnetwork = module.producer-vpc.subnets["${var.region}/producer-subnet-01"].id
+    subnetwork = module.producer-vpc.subnets["${var.region}/producer-subnet"].id
   }
   disk {
     source_image = "debian-cloud/debian-10"
@@ -119,15 +142,6 @@ resource "google_compute_instance_template" "nginx_instance_template" {
   }
   lifecycle {
     create_before_destroy = true
-  }
-}
-
-# create a health check
-resource "google_compute_region_health_check" "nginx_healthcheck" {
-  name   = "nginx-hc"
-  region = var.region
-  http_health_check {
-    port_specification = "USE_SERVING_PORT"
   }
 }
 
