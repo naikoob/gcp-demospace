@@ -1,5 +1,10 @@
-variable "project" {
-  description = "GCP project to deploy to"
+variable "consumer-project" {
+  description = "GCP project to deploy consumer resources"
+  type        = string
+}
+
+variable "producer-project" {
+  description = "GCP project to deploy producer resources"
   type        = string
 }
 

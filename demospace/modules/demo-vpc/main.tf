@@ -15,8 +15,8 @@ locals {
 
   # this creates a map of unique subnet regions from the map of subnets
   subnets_regions = {
-      for x in var.subnets  :
-      "${x.subnet_region}" => x...
+    for x in var.subnets :
+    "${x.subnet_region}" => x...
   }
 }
 
@@ -41,6 +41,7 @@ module "vpc" {
 # allow iap so we can access the compute instances
 resource "google_compute_firewall" "allow_iap" {
   name    = "${module.vpc.network_name}-allow-ingress-from-iap-rule"
+  project = var.project_id
   network = module.vpc.network_name
 
   allow {
@@ -55,8 +56,10 @@ resource "google_compute_firewall" "allow_iap" {
 resource "google_compute_router" "router" {
   for_each = local.subnets_regions
   name     = "${module.vpc.network_name}-${each.key}-router"
-  region   = each.key
-  network  = module.vpc.network_id
+  project  = var.project_id
+
+  region  = each.key
+  network = module.vpc.network_id
 
   bgp {
     asn = 64514
@@ -67,6 +70,7 @@ resource "google_compute_router" "router" {
 resource "google_compute_router_nat" "nat" {
   for_each = local.subnets_regions
   name     = "${module.vpc.network_name}-${each.key}-nat"
+  project  = var.project_id
 
   router                             = "${module.vpc.network_name}-${each.key}-router"
   region                             = each.key

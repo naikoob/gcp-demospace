@@ -7,7 +7,7 @@ image::private-service-connect.png[]
 Egress firewall rules are used to allow only selected resources to access the private service connect.
 
 == Prerequisites
-. A GCP project
+. 2 GCP projects with Compute Engine API and Identity Aware Proxy API enabled.
 . Terraform
 
 == Steps

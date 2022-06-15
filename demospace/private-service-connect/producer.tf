@@ -2,7 +2,7 @@ module "producer-vpc" {
   source = "../modules/demo-vpc"
 
   network_name = "producer-vpc"
-  project_id   = var.project
+  project_id   = var.producer-project
 
   subnets = [
     {
@@ -26,6 +26,7 @@ module "producer-vpc" {
 # allow http from private-service-connect subnet
 resource "google_compute_firewall" "producer_allow_http" {
   name    = "producer-allow-http-ingress-from-psc-subnet"
+  project = var.producer-project
   network = module.producer-vpc.network_name
 
   allow {
@@ -38,8 +39,9 @@ resource "google_compute_firewall" "producer_allow_http" {
 }
 
 resource "google_compute_service_attachment" "nginx_service_attachment" {
-  name   = "private-service"
-  region = var.region
+  name    = "private-service"
+  project = var.producer-project
+  region  = var.region
 
   enable_proxy_protocol = false
   connection_preference = "ACCEPT_AUTOMATIC"
@@ -49,8 +51,9 @@ resource "google_compute_service_attachment" "nginx_service_attachment" {
 
 # forwarding rule to target
 resource "google_compute_forwarding_rule" "nginx_target_service" {
-  name   = "producer-forwarding-rule"
-  region = var.region
+  name    = "producer-forwarding-rule"
+  project = var.producer-project
+  region  = var.region
 
   load_balancing_scheme = "INTERNAL"
   backend_service       = google_compute_region_backend_service.nginx_backend.id
@@ -61,8 +64,9 @@ resource "google_compute_forwarding_rule" "nginx_target_service" {
 
 # backend service
 resource "google_compute_region_backend_service" "nginx_backend" {
-  name   = "nginx-backend"
-  region = var.region
+  name    = "nginx-backend"
+  project = var.producer-project
+  region  = var.region
 
   protocol              = "TCP"
   load_balancing_scheme = "INTERNAL"
@@ -76,8 +80,10 @@ resource "google_compute_region_backend_service" "nginx_backend" {
 
 # create a health check
 resource "google_compute_region_health_check" "nginx_healthcheck" {
-  name   = "nginx-hc"
-  region = var.region
+  name    = "nginx-hc"
+  project = var.producer-project
+  region  = var.region
+
   http_health_check {
     port_specification = "USE_SERVING_PORT"
   }
@@ -86,6 +92,7 @@ resource "google_compute_region_health_check" "nginx_healthcheck" {
 # allow http for healthchecks
 resource "google_compute_firewall" "producer_allow_healthcheck" {
   name    = "producer-allow-healthcheck"
+  project = var.producer-project
   network = module.producer-vpc.network_name
 
   allow {
@@ -100,6 +107,7 @@ resource "google_compute_firewall" "producer_allow_healthcheck" {
 # instance template
 resource "google_compute_instance_template" "nginx_instance_template" {
   name         = "nginx-instance-template"
+  project      = var.producer-project
   machine_type = "e2-small"
   tags         = ["http-server"]
 
@@ -147,8 +155,10 @@ resource "google_compute_instance_template" "nginx_instance_template" {
 
 # create managed instance group
 resource "google_compute_region_instance_group_manager" "nginx_mig" {
-  name   = "nginx-mig1"
-  region = var.region
+  name    = "nginx-mig1"
+  project = var.producer-project
+  region  = var.region
+
   version {
     instance_template = google_compute_instance_template.nginx_instance_template.id
     name              = "primary"
