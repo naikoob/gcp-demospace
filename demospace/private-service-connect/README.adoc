@@ -28,7 +28,7 @@ terraform init
 + 
 [source, bash]
 ----
-terraform apply -var project=<your-gcp-project-id>
+terraform apply -var 'consumer-project=<your-consumer-project-id>' -var 'producer-project=<your-producer-project-id'
 ----
 . An IP address `10.1.20.100` will be assigned in the consumer VPC to connect to the service attachment published on the producer VPC
 . 2 compute instances will be created in the consumer VPC network - `psc-access-vm` and `test-vm`
