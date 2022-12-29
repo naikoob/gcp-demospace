@@ -1,0 +1,86 @@
+#
+# Terraform to create a VPC for *demo* purpose.
+#
+# The VPC created with this module features:
+# 1. firewall rule to allow IAP access
+# 2. a cloud router per region
+# 3. a cloud NAT per region
+#
+
+locals {
+  subnets = {
+    for x in var.subnets :
+    "${x.subnet_region}/${x.subnet_name}" => x
+  }
+
+  # this creates a map of unique subnet regions from the map of subnets
+  subnets_regions = {
+    for x in var.subnets :
+    "${x.subnet_region}" => x...
+  }
+}
+
+module "vpc" {
+  source  = "terraform-google-modules/network/google"
+  version = "~> 4.0"
+
+  project_id   = var.project_id
+  network_name = var.network_name
+  routing_mode = var.routing_mode
+
+  auto_create_subnetworks = var.auto_create_subnetworks
+  shared_vpc_host         = var.shared_vpc_host
+
+  subnets          = var.subnets
+  secondary_ranges = var.secondary_ranges
+
+  routes         = var.routes
+  firewall_rules = var.firewall_rules
+}
+
+# allow iap so we can access the compute instances
+resource "google_compute_firewall" "allow_iap" {
+  name    = "${module.vpc.network_name}-allow-ingress-from-iap-rule"
+  project = var.project_id
+  network = module.vpc.network_name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "3389"]
+  }
+
+  source_ranges = ["35.235.240.0/20"]
+}
+
+# create a router per region
+resource "google_compute_router" "router" {
+  for_each = local.subnets_regions
+  name     = "${module.vpc.network_name}-${each.key}-router"
+  project  = var.project_id
+
+  region  = each.key
+  network = module.vpc.network_id
+
+  bgp {
+    asn = 64514
+  }
+}
+
+# create a nat per region
+resource "google_compute_router_nat" "nat" {
+  for_each = local.subnets_regions
+  name     = "${module.vpc.network_name}-${each.key}-nat"
+  project  = var.project_id
+
+  router                             = "${module.vpc.network_name}-${each.key}-router"
+  region                             = each.key
+  nat_ip_allocate_option             = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+
+  log_config {
+    enable = true
+    filter = "ERRORS_ONLY"
+  }
+
+  depends_on = [google_compute_router.router]
+}
