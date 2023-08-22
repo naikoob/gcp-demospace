@@ -14,6 +14,11 @@ variable "billing_account" {
   description = "Billing account for the project"
 }
 
+variable "auto_create_network" {
+  description = "Create default network if true (not recommended)"
+  default     = false
+}
+
 variable "labels" {
   description = "labels for the project"
   type        = map(string)
@@ -21,13 +26,8 @@ variable "labels" {
   }
 }
 
-variable "auto_create_network" {
-  description = "Automatically creates default network when true (not recommended)"
-  default     = false
-}
-
 variable "services" {
   description = "Services to be enabled for the project"
   type        = set(string)
-  default     = []
+  default     = ["iam.googleapis.com", "compute.googleapis.com", "servicenetworking.googleapis.com"]
 }

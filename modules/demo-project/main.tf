@@ -6,25 +6,35 @@
 # and have the following APIs enabled by default:
 #
 
-resource "google_project" "project" {
+locals {
+  labels = merge(
+    tomap({
+      "project" = "${var.name}"
+      "purpose" = "demo"
+    }),
+    var.labels,
+  )
+
+  services = setunion(
+    toset([
+      "iam.googleapis.com",
+      "compute.googleapis.com",
+      "container.googleapis.com",
+      "servicenetworking.googleapis.com"
+    ]),
+  var.services)
+}
+
+module "google_project" {
+  source = "../project"
+
   name       = var.name
   project_id = var.project_id
   folder_id  = var.folder_id
 
-  billing_account = var.billing_account
-}
+  billing_account     = var.billing_account
+  auto_create_network = var.auto_create_network
 
-resource "google_project_service" "services" {
-  for_each = var.services
-  service  = each.value
-
-  project = google_project.project.project_id
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-
-  disable_dependent_services = true
-  disable_on_destroy         = false
+  labels   = local.labels
+  services = local.services
 }
