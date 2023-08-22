@@ -1,0 +1,3 @@
+[submodule "sandboxes/billinginsights/gcp-billing-insights"]
+	path = sandboxes/billinginsights/gcp-billing-insights
+	url = https://github.com/priyambodo-at-google/gcp-billing-insights
