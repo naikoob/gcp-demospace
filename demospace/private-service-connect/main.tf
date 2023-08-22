@@ -1,3 +1,9 @@
+locals {
+  labels = {
+    "demo" = "private-service-connect"
+  }
+}
+
 provider "google" {
   region = var.region
   zone   = "${var.region}-a"
@@ -30,6 +36,7 @@ module "consumer_project" {
   name       = "psc-consumer"
   project_id = "psc-consumer-${random_string.suffix.result}"
   folder_id  = data.google_active_folder.folder.name
+  labels     = local.labels
 
   billing_account = data.google_billing_account.account.id
 }
@@ -40,6 +47,7 @@ module "producer_project" {
   name       = "psc-producer"
   project_id = "psc-producer-${random_string.suffix.result}"
   folder_id  = data.google_active_folder.folder.name
+  labels     = local.labels
 
   billing_account = data.google_billing_account.account.id
 }
