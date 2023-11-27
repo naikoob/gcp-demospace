@@ -8,14 +8,11 @@
 #
 
 locals {
-  subnets = {
-    for x in var.subnets :
-    "${x.subnet_region}/${x.subnet_name}" => x
-  }
+  subnets = setunion(var.subnets, var.shared_vpc_host == true ? var.shared_vpc_subnets : [])
 
   # this creates a map of unique subnet regions from the map of subnets
   subnets_regions = {
-    for x in var.subnets :
+    for x in local.subnets :
     "${x.subnet_region}" => x...
   }
 }
@@ -31,7 +28,7 @@ module "vpc" {
   auto_create_subnetworks = var.auto_create_subnetworks
   shared_vpc_host         = var.shared_vpc_host
 
-  subnets          = var.subnets
+  subnets          = local.subnets
   secondary_ranges = var.secondary_ranges
 
   routes         = var.routes
