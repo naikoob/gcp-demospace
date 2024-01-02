@@ -36,6 +36,7 @@ module "project" {
   services = [
     "iam.googleapis.com",
     "compute.googleapis.com",
+    "cloudaicompanion.googleapis.com", # for duet ai 
     "servicenetworking.googleapis.com",
     "workstations.googleapis.com"
   ]
@@ -56,4 +57,17 @@ module "dev_vpc" {
       subnet_flow_logs      = "true"
     },
   ]
+}
+
+resource "google_workstations_workstation_cluster" "default" {
+  provider               = google-beta
+  project                = module.project.project_id
+  workstation_cluster_id = "workstation-cluster-private"
+  network                = module.dev_vpc.network_id
+  subnetwork             = module.dev_vpc.subnets_ids[0]
+  location               = var.region
+
+  # private_cluster_config {
+  #   enable_private_endpoint = true
+  # }
 }

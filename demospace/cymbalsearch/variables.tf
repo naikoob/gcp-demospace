@@ -6,7 +6,7 @@ variable "organization" {
 variable "folder" {
   description = "Parent folder to deploy to"
   type        = string
-  default     = "sandboxes"
+  default     = "demospace"
 }
 
 variable "billing_account_name" {
@@ -17,5 +17,5 @@ variable "billing_account_name" {
 variable "region" {
   description = "GCP region to deploy to"
   type        = string
-  default     = "us-central1"
+  default     = "us-central1" # 
 }
