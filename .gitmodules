@@ -1,3 +1,6 @@
 [submodule "sandboxes/billinginsights/gcp-billing-insights"]
 	path = sandboxes/billinginsights/gcp-billing-insights
 	url = https://github.com/priyambodo-at-google/gcp-billing-insights
+[submodule "demospace/cymbalsearch/cymbal-search"]
+	path = demospace/cymbalsearch/cymbal-search
+	url = git@gitlab.com:google-cloud-ce/googlers/elroylbj/cymbal-search.git
