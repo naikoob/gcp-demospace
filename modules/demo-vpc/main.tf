@@ -17,6 +17,10 @@ locals {
   }
 }
 
+data "google_netblock_ip_ranges" "iap_forwarders" {
+  range_type = "iap-forwarders"
+}
+
 module "vpc" {
   source  = "terraform-google-modules/network/google"
   version = "~> 4.0"
@@ -41,12 +45,11 @@ resource "google_compute_firewall" "allow_iap" {
   project = var.project_id
   network = module.vpc.network_name
 
+  source_ranges = concat(data.google_netblock_ip_ranges.iap_forwarders.cidr_blocks_ipv4)
   allow {
     protocol = "tcp"
     ports    = ["22", "3389"]
   }
-
-  source_ranges = ["35.235.240.0/20"]
 }
 
 # create a router per region
